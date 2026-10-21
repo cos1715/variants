@@ -4,17 +4,18 @@ import { hostCookieName, memberCookieName } from "@/lib/cookies";
 import { hashToken } from "@/lib/security";
 import { db } from "@/lib/supabase-server";
 import { getPreset } from "@/lib/presets";
-import type { LeaderboardEntry, Participant, ParticipantRole, PublicAnswer, QuestionType, ResultAnswer, RoomSnapshot, RoomStatus } from "@/lib/types";
+import type { LeaderboardEntry, Participant, ParticipantRole, PublicAnswer, ResultAnswer, RoomSnapshot, RoomStatus, ScoreAdjustment } from "@/lib/types";
 
 export type RoomRecord = { id: string; code: string; status: RoomStatus; preset_id: string; host_token_hash: string; current_question_id: string | null; phase_ends_at: string | null; voting_closed_at: string | null; answering_seconds: number; voting_seconds: number };
 type MemberRecord = Participant & { session_token_hash: string };
-type QuestionRecord = { id: string; text: string; type: QuestionType; correct_answer: string };
+type QuestionRecord = { id: string; text: string; answer_count: number; correct_answer: string };
 type AnswerRecord = { id: string; text: string; answer_index: number; kind: ResultAnswer["kind"]; participant_id: string | null };
 type PublicAnswerRow = { id: string; source_answer_id: string; position: number };
 type VoteRecord = { public_answer_id: string; voter_participant_id: string };
 type ScoreRecord = { participant_id: string; score_delta: number };
 type ScoredParticipant = Participant & { score: number };
-type RoundRecord = { question_id: string };
+type RoundRecord = { question_id: string; answering_seconds: number; voting_seconds: number; answer_count: number };
+type AdjustmentRecord = { id: string; participant_id: string; delta: number; reason: string | null; created_at: string };
 
 export async function findRoom(code: string): Promise<RoomRecord | null> {
   const rows = await db<RoomRecord[]>(`rooms?code=eq.${code}&select=id,code,status,preset_id,host_token_hash,current_question_id,phase_ends_at,voting_closed_at,answering_seconds,voting_seconds&limit=1`);
@@ -42,13 +43,14 @@ export async function snapshotForRoom(room: RoomRecord, isHost: boolean, partici
   ]);
   if (!preset) throw new Error("Room preset is missing");
   const question = room.current_question_id
-    ? (await db<QuestionRecord[]>(`room_questions?id=eq.${room.current_question_id}&room_id=eq.${room.id}&select=id,text,type,correct_answer&limit=1`))[0] ?? null
+    ? (await db<QuestionRecord[]>(`room_questions?id=eq.${room.current_question_id}&room_id=eq.${room.id}&select=id,text,answer_count,correct_answer&limit=1`))[0] ?? null
     : null;
+  const round = question ? (await db<RoundRecord[]>(`room_rounds?room_id=eq.${room.id}&question_id=eq.${question.id}&select=question_id,answering_seconds,voting_seconds,answer_count&limit=1`))[0] : null;
   const game: RoomSnapshot["game"] = {
-    question: question ? { text: question.text, type: question.type } : null,
+    question: question ? { text: question.text, answerCount: round?.answer_count ?? question.answer_count } : null,
     phaseEndsAt: room.phase_ends_at,
-    answeringSeconds: room.answering_seconds,
-    votingSeconds: room.voting_seconds,
+    answeringSeconds: round?.answering_seconds ?? room.answering_seconds,
+    votingSeconds: round?.voting_seconds ?? room.voting_seconds,
     votingClosedAt: room.voting_closed_at,
   };
   if (isHost && room.status === "preparing" && question) game.correctAnswer = question.correct_answer;
@@ -80,12 +82,13 @@ export async function snapshotForRoom(room: RoomRecord, isHost: boolean, partici
       game.votedPlayerCount = new Set(votes.map((vote) => vote.voter_participant_id)).size;
     }
     if (room.status === "results" || room.status === "finished") {
-      const [votes, scoredParticipants, deltas, rounds, allQuestions] = await Promise.all([
+      const [votes, scoredParticipants, deltas, rounds, allQuestions, adjustments] = await Promise.all([
         db<VoteRecord[]>(`room_votes?room_id=eq.${room.id}&question_id=eq.${question.id}&select=public_answer_id,voter_participant_id`),
         db<ScoredParticipant[]>(`participants?room_id=eq.${room.id}&select=id,name,role,joined_at,score&order=joined_at.asc`),
         db<ScoreRecord[]>(`room_round_scores?room_id=eq.${room.id}&question_id=eq.${question.id}&select=participant_id,score_delta`),
         db<RoundRecord[]>(`room_rounds?room_id=eq.${room.id}&select=question_id`),
         db<{ id: string }[]>(`room_questions?room_id=eq.${room.id}&select=id`),
+        db<AdjustmentRecord[]>(`room_score_adjustments?room_id=eq.${room.id}&select=id,participant_id,delta,reason,created_at&order=created_at.desc`),
       ]);
       const names = new Map(scoredParticipants.map((member) => [member.id, member.name]));
       const votesByAnswer = new Map<string, string[]>();
@@ -104,6 +107,7 @@ export async function snapshotForRoom(room: RoomRecord, isHost: boolean, partici
         return { participantId: member.id, name: member.name, score: member.score, lastRoundDelta: deltaByParticipant.get(member.id) ?? 0, place };
       });
       game.hasNextQuestion = room.status === "results" && allQuestions.some((candidate) => !rounds.some((round) => round.question_id === candidate.id));
+      game.scoreAdjustments = adjustments.map((adjustment): ScoreAdjustment => ({ id: adjustment.id, participantId: adjustment.participant_id, participantName: names.get(adjustment.participant_id) ?? "Гравець", delta: adjustment.delta, reason: adjustment.reason, createdAt: adjustment.created_at }));
     }
   }
   return { code: room.code, status: room.status, preset: { id: preset.id, name: preset.name, isBuiltin: preset.isBuiltin, questionCount: preset.questionCount }, participants, isHost, role: participant.role, game };

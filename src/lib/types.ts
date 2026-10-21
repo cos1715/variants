@@ -1,7 +1,6 @@
 export type ParticipantRole = "host" | "player" | "spectator";
 export type GamePhase = "lobby" | "preparing" | "answering" | "voting" | "results" | "finished";
 export type RoomStatus = GamePhase;
-export type QuestionType = "normal" | "special";
 
 export type Participant = {
   id: string;
@@ -21,7 +20,7 @@ export type PresetQuestion = {
   id: string;
   text: string;
   correctAnswer: string;
-  type: QuestionType;
+  answerCount: number;
   sortOrder: number;
 };
 
@@ -35,7 +34,7 @@ export type RoomSnapshot = {
   isHost: boolean;
   role: ParticipantRole;
   game: {
-    question: { text: string; type: QuestionType } | null;
+    question: { text: string; answerCount: number } | null;
     correctAnswer?: string;
     ownAnswers?: string[];
     publicAnswers?: PublicAnswer[];
@@ -50,6 +49,7 @@ export type RoomSnapshot = {
     phaseEndsAt: string | null;
     answeringSeconds: number;
     votingSeconds: number;
+    scoreAdjustments?: ScoreAdjustment[];
   };
 };
 
@@ -57,3 +57,4 @@ export type PublicAnswer = { id: string; text: string };
 export type ResultAnswer = PublicAnswer & { kind: "correct" | "host_lie" | "player_lie"; authorName: string | null; voteCount: number; voters: string[] };
 export type LeaderboardEntry = { participantId: string; name: string; score: number; lastRoundDelta: number; place: number };
 export type RoundResults = { answers: ResultAnswer[] };
+export type ScoreAdjustment = { id: string; participantId: string; participantName: string; delta: number; reason: string | null; createdAt: string };

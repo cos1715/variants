@@ -1,10 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canCastVote, isDeadlineOpen, requiredAnswerCount, scoreVotes, shouldFinalizeRound } from "./game-rules.ts";
+import { canAdjustScore, canCastVote, hasExactAnswerCount, isAnswerCount, isDeadlineOpen, migratedAnswerCount, scoreVotes, shouldFinalizeRound } from "./game-rules.ts";
 
-test("round type defines its exact required answer count", () => {
-  assert.equal(requiredAnswerCount("normal"), 1);
-  assert.equal(requiredAnswerCount("special"), 3);
+test("legacy question types migrate to answer counts", () => {
+  assert.equal(migratedAnswerCount("normal"), 1);
+  assert.equal(migratedAnswerCount("special"), 3);
+});
+
+test("answer count accepts only one through five and requires an exact submission", () => {
+  assert.equal(isAnswerCount(1), true);
+  assert.equal(isAnswerCount(5), true);
+  assert.equal(isAnswerCount(0), false);
+  assert.equal(isAnswerCount(6), false);
+  assert.equal(hasExactAnswerCount(["one"], 1), true);
+  assert.equal(hasExactAnswerCount(["one"], 3), false);
+  assert.equal(hasExactAnswerCount(["one", "two", "three"], 3), true);
 });
 
 test("scores correct choices, host lies, and player lies exactly once per vote", () => {
@@ -13,7 +23,15 @@ test("scores correct choices, host lies, and player lies exactly once per vote",
     { voterId: "olena", answerKind: "player_lie", authorId: "marko" },
     { voterId: "marko", answerKind: "host_lie", authorId: "host" },
   ]);
-  assert.deepEqual(Object.fromEntries(scores), { andriy: 2, marko: 0 });
+  assert.deepEqual(Object.fromEntries(scores), { andriy: 2, marko: -2 });
+});
+
+test("score adjustments are limited to between rounds and non-zero deltas", () => {
+  assert.equal(canAdjustScore("preparing", 20), true);
+  assert.equal(canAdjustScore("results", -20), true);
+  assert.equal(canAdjustScore("answering", 1), false);
+  assert.equal(canAdjustScore("voting", -1), false);
+  assert.equal(canAdjustScore("results", 0), false);
 });
 
 test("a player can cast only one non-own vote while voting is open", () => {

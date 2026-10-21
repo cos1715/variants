@@ -1,4 +1,4 @@
-import type { ParticipantRole, QuestionType } from "@/lib/types";
+import type { ParticipantRole } from "@/lib/types";
 
 export function normaliseCode(value: unknown): string | null {
   const code = typeof value === "string" ? value.replace(/\s/g, "") : "";
@@ -26,7 +26,9 @@ export function normaliseGameAnswer(value: unknown): string | null { return norm
 export function normaliseTimer(value: unknown, allowed: readonly number[]): number | null {
   return typeof value === "number" && Number.isInteger(value) && allowed.includes(value) ? value : null;
 }
-export function normaliseQuestionType(value: unknown): QuestionType | null { return value === "normal" || value === "special" ? value : null; }
+export function normaliseAnswerCount(value: unknown): number | null { return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 5 ? value : null; }
+export function normaliseScoreDelta(value: unknown): number | null { return typeof value === "number" && Number.isInteger(value) && value >= -20 && value <= 20 && value !== 0 ? value : null; }
+export function normaliseAdjustmentReason(value: unknown): string | null { return value === undefined || value === null || value === "" ? null : normaliseText(value, 1, 160); }
 export function normaliseUuid(value: unknown): string | null {
   return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value) ? value : null;
 }

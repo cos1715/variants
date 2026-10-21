@@ -3,7 +3,7 @@ import { db } from "@/lib/supabase-server";
 import type { PresetDetails, PresetQuestion, PresetSummary } from "@/lib/types";
 
 type PresetRow = { id: string; name: string; is_builtin: boolean; created_at: string };
-type QuestionRow = { id: string; preset_id: string; text: string; correct_answer: string; type: "normal" | "special"; sort_order: number };
+type QuestionRow = { id: string; preset_id: string; text: string; correct_answer: string; answer_count: number; sort_order: number };
 type CountRow = { preset_id: string };
 
 function summary(row: PresetRow, questionCount: number): PresetSummary {
@@ -11,7 +11,7 @@ function summary(row: PresetRow, questionCount: number): PresetSummary {
 }
 
 function question(row: QuestionRow): PresetQuestion {
-  return { id: row.id, text: row.text, correctAnswer: row.correct_answer, type: row.type, sortOrder: row.sort_order };
+  return { id: row.id, text: row.text, correctAnswer: row.correct_answer, answerCount: row.answer_count, sortOrder: row.sort_order };
 }
 
 export async function listPresets(): Promise<PresetSummary[]> {
@@ -28,6 +28,6 @@ export async function getPreset(id: string): Promise<PresetDetails | null> {
   const presets = await db<PresetRow[]>(`presets?id=eq.${id}&select=id,name,is_builtin,created_at&limit=1`);
   const preset = presets[0];
   if (!preset) return null;
-  const questions = await db<QuestionRow[]>(`questions?preset_id=eq.${id}&select=id,preset_id,text,correct_answer,type,sort_order&order=sort_order.asc`);
+  const questions = await db<QuestionRow[]>(`questions?preset_id=eq.${id}&select=id,preset_id,text,correct_answer,answer_count,sort_order&order=sort_order.asc`);
   return { ...summary(preset, questions.length), questions: questions.map(question) };
 }
