@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+:root { color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: #f7f7ff;
+  background: radial-gradient(circle at 15% 5%, #2b1e5b 0, transparent 28rem), #101018;
+  font-family: Arial, Helvetica, sans-serif;
+}
+button, input { font: inherit; }
+button:focus-visible, input:focus-visible { outline: 3px solid #9c8cff; outline-offset: 3px; }
