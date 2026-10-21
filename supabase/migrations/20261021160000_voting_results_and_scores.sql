@@ -181,4 +181,4 @@ revoke all on function public.submit_room_vote(uuid, uuid, uuid), public.close_v
 grant execute on function public.submit_room_vote(uuid, uuid, uuid), public.close_voting_round(uuid, boolean), public.close_expired_voting_rounds(), public.show_room_results(uuid) to service_role;
 
 select cron.unschedule(jobid) from cron.job where jobname = 'variants-close-expired-voting-rounds';
-select cron.schedule('variants-close-expired-voting-rounds', '1 second', 'select public.close_expired_voting_rounds()');
+select cron.schedule('variants-close-expired-voting-rounds', '5 seconds', 'select public.close_expired_voting_rounds()');

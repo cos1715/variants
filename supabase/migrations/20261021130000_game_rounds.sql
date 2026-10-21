@@ -202,7 +202,7 @@ do $$ begin
   end if;
 end $$;
 
--- Supabase Cron executes independently of connected browsers. The one-second
+-- Supabase Cron executes independently of connected browsers. The five-second
 -- schedule needs a project on PostgreSQL 15.1.1.61 or newer.
 create extension if not exists pg_cron;
-select cron.schedule('variants-close-expired-answering-rounds', '1 second', 'select public.close_expired_answering_rounds()');
+select cron.schedule('variants-close-expired-answering-rounds', '5 seconds', 'select public.close_expired_answering_rounds()');

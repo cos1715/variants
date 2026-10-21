@@ -39,6 +39,12 @@ export function RoomLobby({ initial }: { initial: RoomSnapshot }) {
     return () => { channelRef.current = null; void channel.unsubscribe(); };
   }, [initial.code, refresh]);
 
+  useEffect(() => {
+    const refreshWhenVisible = () => { if (document.visibilityState === "visible") void refresh(); };
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => document.removeEventListener("visibilitychange", refreshWhenVisible);
+  }, [refresh]);
+
   useEffect(() => { if (room.isHost && room.status === "lobby") void fetch("/api/presets").then((response) => response.ok ? response.json() : []).then(setPresets); }, [room.isHost, room.status]);
 
   async function startGame() {

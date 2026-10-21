@@ -1,13 +1,13 @@
-# Варіанти — MVP, етап 4
+# Варіанти — MVP, етап 5
 
 Мобільна браузерна party game українською. Реалізовано кімнати, пресети, серверні раунди, анонімне голосування, результати й рейтинг.
 
 ## Запуск
 
 1. Скопіюйте `.env.example` у `.env.local` і вкажіть значення зі свого Supabase-проєкту.
-2. У Supabase відкрийте **SQL Editor** та послідовно виконайте міграції з `supabase/migrations/`, включно з `20261021160000_voting_results_and_scores.sql`.
+2. У Supabase відкрийте **SQL Editor** та послідовно виконайте всі міграції з `supabase/migrations/`, включно з `20261021180000_preserve_live_game_departures.sql`.
 3. У **Project Settings → API → Data API** додайте до exposed tables: `rooms`, `participants`, `room_lobby_events`, `presets`, `questions`, `room_questions`, `room_rounds`, `room_answers`, `room_public_answers`, `room_votes`, `room_round_scores`, `room_game_events`. Це необхідно і для server-side REST-запитів на нових Supabase-проєктах; воно не відкриває приватні таблиці браузеру, бо RLS і SQL-міграції забороняють доступ `anon`/`authenticated` до них.
-4. Увімкніть розширення **pg_cron** (якщо воно ще не активне). Остання міграція створює щосекундне завдання для закриття голосування; воно працює навіть коли ведучий відключився.
+4. Увімкніть розширення **pg_cron** (якщо воно ще не активне). Міграції створюють два завдання з інтервалом 5 секунд для закриття фаз відповідей і голосування; вони працюють навіть коли ведучий відключився.
 5. Встановіть залежності та запустіть застосунок:
 
 ```bash
@@ -48,6 +48,11 @@ npm run build
 npm test
 ```
 
-## Наступний етап
+## Деплой на Vercel
 
-Фінальне полірування та релізна перевірка.
+1. У Vercel створіть або підключіть проєкт до цього репозиторію. Framework preset: **Next.js**.
+2. Додайте до Preview і Production ті самі три змінні з `.env.example`. `SUPABASE_SERVICE_ROLE_KEY` має бути тільки серверною змінною без префікса `NEXT_PUBLIC_`.
+3. Застосуйте міграції до цільового Supabase-проєкту та переконайтеся, що Realtime publication містить `room_lobby_events` і `room_game_events`.
+4. Створіть preview deployment, пройдіть гру у п’яти незалежних сесіях, а вже потім робіть production deployment.
+
+Не викладайте `.env.local` і не змінюйте production-середовище без перевіреного preview.

@@ -29,7 +29,7 @@ export async function authenticateRoomAccess(code: string): Promise<{ room: Room
   const memberToken = store.get(memberCookieName(code))?.value;
   const isHost = Boolean(hostToken && hashToken(hostToken) === room.host_token_hash);
   const hash = memberToken ? hashToken(memberToken) : "";
-  const filter = isHost ? "role=eq.host" : `session_token_hash=eq.${hash}`;
+  const filter = isHost ? "role=eq.host" : `session_token_hash=eq.${hash}&left_at=is.null`;
   if (!isHost && !memberToken) return null;
   const members = await db<MemberRecord[]>(`participants?room_id=eq.${room.id}&${filter}&select=id,name,role,joined_at&limit=1`);
   return members[0] ? { room, isHost, participant: members[0] } : null;
