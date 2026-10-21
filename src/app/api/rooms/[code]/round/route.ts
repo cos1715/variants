@@ -7,7 +7,7 @@ type Context = { params: Promise<{ code: string }> };
 
 export async function POST(request: Request, { params }: Context) {
   const code = normaliseCode((await params).code); const body = await readSmallJson(request); const lie = normaliseGameAnswer(body?.lie);
-  if (!code || !lie) return NextResponse.json({ error: "Введи неправдиву відповідь до 160 символів." }, { status: 400 });
+  if (!code || !lie) return NextResponse.json({ error: "Введи відповідь до 160 символів." }, { status: 400 });
   try {
     const access = await authenticateRoomAccess(code);
     if (!access?.isHost) return NextResponse.json({ error: "Лише ведучий може почати раунд." }, { status: 403 });

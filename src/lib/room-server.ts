@@ -42,7 +42,7 @@ export async function snapshotForRoom(room: RoomRecord, isHost: boolean, partici
     getPreset(room.preset_id),
   ]);
   if (!preset) throw new Error("Room preset is missing");
-  const question = room.current_question_id
+  const question = room.current_question_id && (isHost || room.status !== "preparing")
     ? (await db<QuestionRecord[]>(`room_questions?id=eq.${room.current_question_id}&room_id=eq.${room.id}&select=id,text,answer_count,correct_answer&limit=1`))[0] ?? null
     : null;
   const round = question ? (await db<RoundRecord[]>(`room_rounds?room_id=eq.${room.id}&question_id=eq.${question.id}&select=question_id,answering_seconds,voting_seconds,answer_count&limit=1`))[0] : null;
