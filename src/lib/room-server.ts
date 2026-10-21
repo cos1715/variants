@@ -3,13 +3,14 @@ import { cookies } from "next/headers";
 import { hostCookieName, memberCookieName } from "@/lib/cookies";
 import { hashToken } from "@/lib/security";
 import { db } from "@/lib/supabase-server";
-import type { Participant, PresetKey, RoomSnapshot, RoomStatus } from "@/lib/types";
+import { getPreset } from "@/lib/presets";
+import type { Participant, RoomSnapshot, RoomStatus } from "@/lib/types";
 
-export type RoomRecord = { id: string; code: string; status: RoomStatus; preset_key: PresetKey; host_token_hash: string };
+export type RoomRecord = { id: string; code: string; status: RoomStatus; preset_id: string; host_token_hash: string };
 type MemberRecord = Participant & { session_token_hash: string };
 
 export async function findRoom(code: string): Promise<RoomRecord | null> {
-  const rows = await db<RoomRecord[]>(`rooms?code=eq.${code}&select=id,code,status,preset_key,host_token_hash&limit=1`);
+  const rows = await db<RoomRecord[]>(`rooms?code=eq.${code}&select=id,code,status,preset_id,host_token_hash&limit=1`);
   return rows[0] ?? null;
 }
 
@@ -28,6 +29,10 @@ export async function authenticateRoomAccess(code: string): Promise<{ room: Room
 }
 
 export async function snapshotForRoom(room: RoomRecord, isHost: boolean): Promise<RoomSnapshot> {
-  const participants = await db<Participant[]>(`participants?room_id=eq.${room.id}&select=id,name,role,joined_at&order=joined_at.asc`);
-  return { code: room.code, status: room.status, presetKey: room.preset_key, participants, isHost };
+  const [participants, preset] = await Promise.all([
+    db<Participant[]>(`participants?room_id=eq.${room.id}&select=id,name,role,joined_at&order=joined_at.asc`),
+    getPreset(room.preset_id),
+  ]);
+  if (!preset) throw new Error("Room preset is missing");
+  return { code: room.code, status: room.status, preset: { id: preset.id, name: preset.name, isBuiltin: preset.isBuiltin, questionCount: preset.questionCount }, participants, isHost };
 }

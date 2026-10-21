@@ -2,15 +2,16 @@ import { NextResponse } from "next/server";
 import { hostCookieName, memberCookieName, sessionCookieOptions } from "@/lib/cookies";
 import { makeRoomCode, makeToken, hashToken } from "@/lib/security";
 import { db } from "@/lib/supabase-server";
-import { normaliseName } from "@/lib/validation";
-import { classicPreset } from "@/lib/presets";
+import { normaliseName, normaliseUuid, readSmallJson } from "@/lib/validation";
 
 type InsertedRoom = { id: string; code: string };
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => ({}));
-  const hostName = normaliseName(body.name);
+  const body = await readSmallJson(request);
+  const hostName = normaliseName(body?.name);
+  const presetId = normaliseUuid(body?.presetId);
   if (!hostName) return NextResponse.json({ error: "Введи ім’я від 2 до 24 символів." }, { status: 400 });
+  if (!presetId) return NextResponse.json({ error: "Обери пресет для кімнати." }, { status: 400 });
 
   const hostToken = makeToken();
   const memberToken = makeToken();
@@ -19,9 +20,11 @@ export async function POST(request: Request) {
     for (let attempt = 0; attempt < 10; attempt += 1) {
       const code = makeRoomCode();
       try {
+        const presets = await db<{ id: string }[]>(`presets?id=eq.${presetId}&select=id&limit=1`);
+        if (!presets.length) return NextResponse.json({ error: "Вибраний пресет не знайдено." }, { status: 404 });
         const rooms = await db<InsertedRoom[]>("rooms?select=id,code", {
           method: "POST",
-          body: JSON.stringify({ code, preset_key: classicPreset.key, host_token_hash: hashToken(hostToken) }),
+          body: JSON.stringify({ code, preset_id: presetId, host_token_hash: hashToken(hostToken) }),
         });
         const room = rooms[0];
         if (!room) throw new Error("Room creation returned no room");
