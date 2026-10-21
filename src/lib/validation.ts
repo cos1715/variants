@@ -22,6 +22,10 @@ function normaliseText(value: unknown, min: number, max: number): string | null 
 export function normalisePresetName(value: unknown): string | null { return normaliseText(value, 2, 80); }
 export function normaliseQuestionText(value: unknown): string | null { return normaliseText(value, 3, 400); }
 export function normaliseCorrectAnswer(value: unknown): string | null { return normaliseText(value, 1, 160); }
+export function normaliseGameAnswer(value: unknown): string | null { return normaliseText(value, 1, 160); }
+export function normaliseTimer(value: unknown, allowed: readonly number[]): number | null {
+  return typeof value === "number" && Number.isInteger(value) && allowed.includes(value) ? value : null;
+}
 export function normaliseQuestionType(value: unknown): QuestionType | null { return value === "normal" || value === "special" ? value : null; }
 export function normaliseUuid(value: unknown): string | null {
   return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value) ? value : null;

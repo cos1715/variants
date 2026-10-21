@@ -16,9 +16,9 @@ export async function POST(_: Request, { params }: Context) {
     const room = await findRoom(code);
     const token = (await cookies()).get(hostCookieName(code))?.value;
     if (!room || !token || hashToken(token) !== room.host_token_hash) return NextResponse.json({ error: "Лише ведучий може завершити кімнату." }, { status: 403 });
-    if (room.status === "ended") return NextResponse.json({ status: "ended" });
-    await db(`rooms?id=eq.${room.id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: "ended" }) });
-    return NextResponse.json({ status: "ended" });
+    if (room.status === "finished") return NextResponse.json({ status: "finished" });
+    await db(`rooms?id=eq.${room.id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: "finished", phase_ends_at: null }) });
+    return NextResponse.json({ status: "finished" });
   } catch {
     return NextResponse.json({ error: "Не вдалося завершити кімнату." }, { status: 500 });
   }

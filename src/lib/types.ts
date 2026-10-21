@@ -1,5 +1,6 @@
 export type ParticipantRole = "host" | "player" | "spectator";
-export type RoomStatus = "lobby" | "waiting_for_question" | "ended";
+export type GamePhase = "lobby" | "preparing" | "answering" | "voting" | "results" | "finished";
+export type RoomStatus = GamePhase;
 export type QuestionType = "normal" | "special";
 
 export type Participant = {
@@ -32,4 +33,17 @@ export type RoomSnapshot = {
   preset: PresetSummary;
   participants: Participant[];
   isHost: boolean;
+  role: ParticipantRole;
+  game: {
+    question: { text: string; type: QuestionType } | null;
+    correctAnswer?: string;
+    ownAnswers?: string[];
+    publicAnswers?: PublicAnswer[];
+    submittedPlayerCount?: number;
+    phaseEndsAt: string | null;
+    answeringSeconds: number;
+    votingSeconds: number;
+  };
 };
+
+export type PublicAnswer = { id: string; text: string };

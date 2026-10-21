@@ -19,6 +19,6 @@ export async function POST(_: Request, { params }: Context) {
     const result = await db<string>("rpc/start_room_with_snapshot", { method: "POST", body: JSON.stringify({ p_room_id: room.id }) });
     if (result === "empty") return NextResponse.json({ error: "Пресет не містить питань." }, { status: 409 });
     if (result !== "started") return NextResponse.json({ error: "Гру вже розпочато." }, { status: 409 });
-    return NextResponse.json({ status: "waiting_for_question" });
+    return NextResponse.json({ status: "preparing" });
   } catch { return NextResponse.json({ error: "Не вдалося почати гру." }, { status: 500 }); }
 }

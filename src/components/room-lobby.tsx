@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
 import type { RoomSnapshot } from "@/lib/types";
 import { Brand } from "@/components/brand";
+import { GameRoom } from "@/components/game-room";
 import type { PresetSummary } from "@/lib/types";
 
 const roleLabel = { host: "Ведучий", player: "Гравець", spectator: "Глядач" } as const;
@@ -64,8 +65,9 @@ export function RoomLobby({ initial }: { initial: RoomSnapshot }) {
 
   const players = room.participants.filter((participant) => participant.role === "player").length;
   const spectators = room.participants.filter((participant) => participant.role === "spectator").length;
-  const ended = room.status === "ended";
+  const ended = room.status === "finished";
   const isLobby = room.status === "lobby";
+  if (!isLobby && !ended) return <GameRoom initial={room} />;
   const presetName = room.preset.name;
   const headline = ended ? "Гра завершена" : isLobby ? "Збираємо компанію" : "Гру розпочато";
   const eyebrow = ended ? "КІМНАТУ ЗАВЕРШЕНО" : isLobby ? "КІМНАТА ГОТОВА" : "ГРА РОЗПОЧАЛАСЯ";
