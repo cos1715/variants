@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
 import type { RoomSnapshot } from "@/lib/types";
 import { Brand } from "@/components/brand";
 import { GameRoom } from "@/components/game-room";
+import { roomRefreshIntervalMs } from "@/lib/room-refresh";
 import type { PresetSummary } from "@/lib/types";
 
 const roleLabel = { host: "Ведучий", player: "Гравець", spectator: "Глядач" } as const;
@@ -20,7 +20,6 @@ export function RoomLobby({ initial }: { initial: RoomSnapshot }) {
   const [leaving, setLeaving] = useState(false);
   const [presets, setPresets] = useState<PresetSummary[]>([]);
   const [changingPreset, setChangingPreset] = useState(false);
-  const channelRef = useRef<RealtimeChannel | null>(null);
   const refresh = useCallback(async () => {
     try {
       const response = await fetch(`/api/rooms/${initial.code}`, { cache: "no-store" });
@@ -29,15 +28,7 @@ export function RoomLobby({ initial }: { initial: RoomSnapshot }) {
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Не вдалося оновити список."); }
   }, [initial.code]);
 
-  useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-    if (!url || !key) return;
-    const client = createClient(url, key);
-    const channel = client.channel(`lobby:${initial.code}`).on("postgres_changes", { event: "*", schema: "public", table: "room_lobby_events", filter: `room_code=eq.${initial.code}` }, refresh).subscribe();
-    channelRef.current = channel;
-    return () => { channelRef.current = null; void channel.unsubscribe(); };
-  }, [initial.code, refresh]);
+  useEffect(() => { if (room.status !== "lobby") return; const id = window.setInterval(() => void refresh(), roomRefreshIntervalMs); return () => window.clearInterval(id); }, [refresh, room.status]);
 
   useEffect(() => {
     const refreshWhenVisible = () => { if (document.visibilityState === "visible") void refresh(); };

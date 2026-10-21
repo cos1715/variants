@@ -5,8 +5,8 @@
 ## Запуск
 
 1. Скопіюйте `.env.example` у `.env.local` і вкажіть значення зі свого Supabase-проєкту.
-2. У Supabase відкрийте **SQL Editor** та послідовно виконайте всі міграції з `supabase/migrations/`, включно з `20261021180000_preserve_live_game_departures.sql`.
-3. У **Project Settings → API → Data API** додайте до exposed tables: `rooms`, `participants`, `room_lobby_events`, `presets`, `questions`, `room_questions`, `room_rounds`, `room_answers`, `room_public_answers`, `room_votes`, `room_round_scores`, `room_game_events`. Це необхідно і для server-side REST-запитів на нових Supabase-проєктах; воно не відкриває приватні таблиці браузеру, бо RLS і SQL-міграції забороняють доступ `anon`/`authenticated` до них.
+2. У Supabase відкрийте **SQL Editor** та послідовно виконайте всі міграції з `supabase/migrations/`.
+3. У **Project Settings → API → Data API** додайте до exposed tables: `rooms`, `participants`, `presets`, `questions`, `room_questions`, `room_rounds`, `room_answers`, `room_public_answers`, `room_votes`, `room_round_scores`. Це необхідно і для server-side REST-запитів на нових Supabase-проєктах; воно не відкриває приватні таблиці браузеру, бо RLS і SQL-міграції забороняють доступ `anon`/`authenticated` до них.
 4. Увімкніть розширення **pg_cron** (якщо воно ще не активне). Міграції створюють два завдання з інтервалом 5 секунд для закриття фаз відповідей і голосування; вони працюють навіть коли ведучий відключився.
 5. Встановіть залежності та запустіть застосунок:
 
@@ -22,7 +22,6 @@ npm run dev
 | Змінна | Де використовується |
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | браузер і сервер; URL проєкту |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | браузер; лише підписка на безпечні lobby-події |
 | `SUPABASE_SERVICE_ROLE_KEY` | лише Next.js-сервер; створення та читання приватних записів |
 
 Ніколи не додавайте `SUPABASE_SERVICE_ROLE_KEY` до змінних із префіксом `NEXT_PUBLIC_`.
@@ -34,7 +33,7 @@ npm run dev
 - API перевіряє токен перед поверненням стану кімнати. Старт гри додатково вимагає токен ведучого — прихована кнопка не дає прав.
 - Браузер не має прямого доступу на запис до таблиць Supabase. Публічна бібліотека працює через серверні API з перевіркою полів і лімітом тіла запиту.
 - Питання активної гри з правильними відповідями копіюються в `room_questions` лише на сервері. `anon` не має прав читати цю таблицю або викликати процедуру створення snapshot.
-- Для Realtime відкрито тільки читання таблиці подій без імен, відповідей або токенів; детальний список повертає сервер після перевірки cookie.
+- Браузер оновлює стан кімнати через серверний API лише після перевірки cookie; коди кімнат не транслюються через публічний канал.
 - Під час введення відповіді, правильна відповідь та брехня ведучого існують лише в приватних таблицях і не потрапляють у JSON-відповідь або Realtime. У фазі `voting` сервер повертає тільки `{ id, text }` у збереженому один раз порядку; автори, правильність і чужі голоси відкриваються лише у `results`.
 - Голос зберігає функція PostgreSQL лише для гравця, поточного раунду, до серверного дедлайну й один раз завдяки унікальному ключу `(room_id, question_id, voter_participant_id)`.
 - Підрахунок виконує одна транзакційна функція з блокуванням кімнати та `finalized_at`; повторне відкриття результатів не може вдруге змінити рахунок.
@@ -51,8 +50,8 @@ npm test
 ## Деплой на Vercel
 
 1. У Vercel створіть або підключіть проєкт до цього репозиторію. Framework preset: **Next.js**.
-2. Додайте до Preview і Production ті самі три змінні з `.env.example`. `SUPABASE_SERVICE_ROLE_KEY` має бути тільки серверною змінною без префікса `NEXT_PUBLIC_`.
-3. Застосуйте міграції до цільового Supabase-проєкту та переконайтеся, що Realtime publication містить `room_lobby_events` і `room_game_events`.
+2. Додайте до Preview і Production ті самі дві змінні з `.env.example`. `SUPABASE_SERVICE_ROLE_KEY` має бути тільки серверною змінною без префікса `NEXT_PUBLIC_`.
+3. Застосуйте міграції до цільового Supabase-проєкту.
 4. Створіть preview deployment, пройдіть гру у п’яти незалежних сесіях, а вже потім робіть production deployment.
 
 Не викладайте `.env.local` і не змінюйте production-середовище без перевіреного preview.
