@@ -67,7 +67,7 @@ export function RoomLobby({ initial }: { initial: RoomSnapshot }) {
   const spectators = room.participants.filter((participant) => participant.role === "spectator").length;
   const ended = room.status === "finished";
   const isLobby = room.status === "lobby";
-  if (!isLobby && !ended) return <GameRoom initial={room} />;
+  if (!isLobby && (!ended || room.game.question)) return <GameRoom initial={room} />;
   const presetName = room.preset.name;
   const headline = ended ? "Гра завершена" : isLobby ? "Збираємо компанію" : "Гру розпочато";
   const eyebrow = ended ? "КІМНАТУ ЗАВЕРШЕНО" : isLobby ? "КІМНАТА ГОТОВА" : "ГРА РОЗПОЧАЛАСЯ";

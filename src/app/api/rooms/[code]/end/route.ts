@@ -17,6 +17,7 @@ export async function POST(_: Request, { params }: Context) {
     const token = (await cookies()).get(hostCookieName(code))?.value;
     if (!room || !token || hashToken(token) !== room.host_token_hash) return NextResponse.json({ error: "Лише ведучий може завершити кімнату." }, { status: 403 });
     if (room.status === "finished") return NextResponse.json({ status: "finished" });
+    if (room.status !== "lobby" && room.status !== "results") return NextResponse.json({ error: "Гру можна завершити після показу результатів." }, { status: 409 });
     await db(`rooms?id=eq.${room.id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: "finished", phase_ends_at: null }) });
     return NextResponse.json({ status: "finished" });
   } catch {

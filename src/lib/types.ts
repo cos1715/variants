@@ -39,6 +39,13 @@ export type RoomSnapshot = {
     correctAnswer?: string;
     ownAnswers?: string[];
     publicAnswers?: PublicAnswer[];
+    ownPublicAnswerIds?: string[];
+    hasVoted?: boolean;
+    votedPlayerCount?: number;
+    votingClosedAt?: string | null;
+    results?: RoundResults;
+    leaderboard?: LeaderboardEntry[];
+    hasNextQuestion?: boolean;
     submittedPlayerCount?: number;
     phaseEndsAt: string | null;
     answeringSeconds: number;
@@ -47,3 +54,6 @@ export type RoomSnapshot = {
 };
 
 export type PublicAnswer = { id: string; text: string };
+export type ResultAnswer = PublicAnswer & { kind: "correct" | "host_lie" | "player_lie"; authorName: string | null; voteCount: number; voters: string[] };
+export type LeaderboardEntry = { participantId: string; name: string; score: number; lastRoundDelta: number; place: number };
+export type RoundResults = { answers: ResultAnswer[] };

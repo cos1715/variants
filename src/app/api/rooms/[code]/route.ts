@@ -12,7 +12,10 @@ export async function GET(_: Request, { params }: Context) {
   try {
     const access = await authenticateRoomAccess(code);
     if (!access) return NextResponse.json({ error: "Кімната не знайдена або доступ втрачено." }, { status: 403 });
-    await db("rpc/close_expired_answering_rounds", { method: "POST", body: "{}" });
+    await Promise.all([
+      db("rpc/close_expired_answering_rounds", { method: "POST", body: "{}" }),
+      db("rpc/close_expired_voting_rounds", { method: "POST", body: "{}" }),
+    ]);
     const room = await findRoom(code);
     if (!room) return NextResponse.json({ error: "Кімната не знайдена." }, { status: 404 });
     return NextResponse.json(await snapshotForRoom(room, access.isHost, access.participant));
